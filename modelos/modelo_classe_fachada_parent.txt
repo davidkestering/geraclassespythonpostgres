@@ -1,0 +1,9 @@
+from classes.Conexao import Conexao
+#INCLUDE_CLASSES#
+from classes.FachadaSegurancaBD import FachadaSegurancaBD
+
+class Fachada#BANCO#BDParent:
+    def __init__(self, sBanco):
+        self.pConexao = Conexao(sServidor=sBanco)
+
+#INTERIOR_FACHADA#
