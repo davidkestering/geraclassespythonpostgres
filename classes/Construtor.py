@@ -25,7 +25,7 @@ class Construtor:
             vNome = self.sTabela.split(sSeparador)
             vAuxiliar = []
             for i in range(len(vNome)):
-                if len(vNome[i]) > 3 or len(vNome[i]) == 2:
+                if len(vNome[i]) > 3 or len(vNome[i]) == 2 or i > 0:
                     vAuxiliar.append(vNome[i].lower().capitalize())
             self.sClasse = "".join(vAuxiliar)
             self.sArquivo = "_".join(vAuxiliar).lower()
