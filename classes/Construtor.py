@@ -25,7 +25,7 @@ class Construtor:
             vNome = self.sTabela.split(sSeparador)
             vAuxiliar = []
             for i in range(len(vNome)):
-                if len(vNome[i]) > 3:
+                if len(vNome[i]) > 3 or len(vNome[i]) == 2:
                     vAuxiliar.append(vNome[i].lower().capitalize())
             self.sClasse = "".join(vAuxiliar)
             self.sArquivo = "_".join(vAuxiliar).lower()
@@ -38,7 +38,6 @@ class Construtor:
         sPadraoData = r"(time|timestamp|date|datetime)"
         vCampos = self.vCampos
         for oCampo in vCampos:
-            #print(oCampo)
             sNomeAtributo = ""
             bPassouEmPadrao = False
             if re.search(sPadraoNumerico, oCampo['data_type']):
@@ -47,7 +46,7 @@ class Construtor:
             if re.search(sPadraoData, oCampo['data_type']):
                 sNomeAtributo = "d" + str(oCampo['column_name']).lower().capitalize()
                 bPassouEmPadrao = True
-            if oCampo['data_type'] == "tinyint":
+            if oCampo['data_type'] == "tinyint" or oCampo['data_type'] == "smallint":
                 sNomeAtributo = "b" + str(oCampo['column_name']).lower().capitalize()
                 bPassouEmPadrao = True
             if not bPassouEmPadrao:

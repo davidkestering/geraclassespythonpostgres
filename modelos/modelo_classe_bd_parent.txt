@@ -38,7 +38,7 @@ class #NOME_CLASSE#BDParent(Conexao):
         data = datetime.strptime(vData[0] + '.000000', '%Y-%m-%d %H:%M:%S.%f')
         dDataCadastro = data.strftime('%Y-%m-%d %H:%M:%S')
         o#NOME_CLASSE#.setDtCadastro(dDataCadastro)
-        sSql = f"insert into #NOME_TABELA# (#LISTA_CAMPOS_NAO_CHAVE#) values (#VALORES_NAO_CHAVE#)"
+        sSql = f"insert into #NOME_TABELA# (#LISTA_CAMPOS_NAO_CHAVE#) values (#VALORES_NAO_CHAVE#) RETURNING id"
         oConexao.execute(sSql)
         nId = oConexao.getLastId()
         if nId:

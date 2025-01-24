@@ -31,6 +31,7 @@ class GeradoraBD:
     def geraCampos(self):
         vCampos = self.oConstrutor.vCampos
         vAtributos = self.oConstrutor.vAtributos
+        #print(vCampos)
         if len(vCampos) > 0:
             vAtribuicaoNaoChave = []
             vCamposReg = []
@@ -43,7 +44,9 @@ class GeradoraBD:
             chaveA = "{"
             chaveF = "}"
             for nIndice, oCampo in enumerate(vCampos):
-                if oCampo['pri'] == "pkey":
+                #print(nIndice)
+                #print(oCampo)
+                if oCampo['pri'] == "pk":
                     sTeste = f"{vAtributos[nIndice]}"
                     sTeste2 = vAtributos[nIndice]
                     sTeste3 = "{"+f"{sTeste}"+"}"
@@ -63,15 +66,20 @@ class GeradoraBD:
                         vAtribuicaoNaoChave.append(
                             f"{oCampo['column_name']} = '{chaveA}o{self.oConstrutor.sClasse}.get{vAtributos[nIndice][1:]}(){chaveF}'")
                         vValoresNaoChave.append(f"'{chaveA}o{self.oConstrutor.sClasse}.get{vAtributos[nIndice][1:]}(){chaveF}'")
+                    #print(vAtribuicaoNaoChave)
+                    
                 if vAtributos[nIndice][:1] == "s":
-                    vCamposReg.append(f"oConexao.unescapeString(oReg.{oCampo['column_name']})")
+                    vCamposReg.append(f"oConexao.unescapeString(oReg[\"{oCampo['column_name']}\"])")
                 else:
-                    vCamposReg.append(f"oReg.{oCampo['column_name']}")
+                    vCamposReg.append(f"oReg[\"{oCampo['column_name']}\"]")
 
             self.sListaAtributosChave = ",".join(vAtributosChave)
             self.sListaCamposChave = ",".join(vCamposChave)
             self.sListaCamposNaoChave = ",".join(vCamposNaoChave)
+            #print(vCamposNaoChave)
             self.sListaValoresNaoChave = ",".join(vValoresNaoChave)
+            #print(vValoresNaoChave)
+            #print(self.sListaValoresNaoChave)
             self.sComparacaoChaveAtributo = " and ".join(vComparacao)
             self.sComparacaoChaveAtributoEsp = " and ".join(vComparacaoEsp)
             self.sAtribuicaoNaoChave = ", ".join(vAtribuicaoNaoChave)

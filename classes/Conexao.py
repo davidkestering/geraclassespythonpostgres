@@ -1,11 +1,13 @@
 import psycopg2
-from psycopg2 import sql
-import psycopg2.extras
+from psycopg2.extras import DictCursor
+from psycopg2.extensions import AsIs
+import constantes as ct
 
 class Conexao:
     def __init__(self, sServidor='BANCO'):
         self.pConexao = None
         self.pConsulta = None
+        self.pBanco = None
         self.sErro = None
         self.sSqlError = None
         self.nQtdTabelas = None
@@ -15,7 +17,7 @@ class Conexao:
         if sServidor == 'LOCAL':
             self.conectaBD('localhost', 'postgres', 'tudobem', 'painelpadrao')
         elif sServidor == 'BANCO':
-            self.conectaBD('localhost', '', '', '')
+            self.conectaBD('localhost', 'postgres', 'tudobem', 'painelpadrao')
         else:
             raise Exception(f'Não foi possível conectar ao servidor: {sServidor}')
 
@@ -39,16 +41,15 @@ class Conexao:
             raise Exception(self.sErro)
 
     # def execute(self, sSql):
+    #     self.pConsulta = self.pConexao.cursor(cursor_factory=DictCursor)
     #     try:
-    #         self.pConsulta = self.pConexao.cursor()
     #         self.pConsulta.execute(sSql)
-    #         print(sSql)
+    #         #self.pConsulta.commit()
     #     except psycopg2.Error as e:
     #         self.sSqlError = str(e)
     #         self.sErro = f'Ocorreu o seguinte erro na consulta: {self.sSqlError} <br> Query: {sSql}'
     #         self.insereErroSql(sSql)
     #         return self.getErro()
-    
     def execute(self, sSql):
         try:
             self.pConsulta = self.pConexao.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -60,19 +61,23 @@ class Conexao:
             self.insereErroSql(sSql)
             return self.getErro()
 
-
     def insereErroSql(self, sSql):
         try:
-            with self.pConexao.cursor() as cursor:
-                sSqlErroExecucao = sql.SQL("INSERT INTO seg_erros_mysql (erro, ip, publicado) VALUES (%s, %s, 1)")
-                cursor.execute(sSqlErroExecucao, (self.escapeString(self.getErro()), 'IP_SERVIDOR'))
+            with self.pConexao.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                sSqlErroExecucao = f"INSERT INTO seg_erros_sql (erro,ip,publicado) VALUES ('{self.escapeString(self.getErro())}','{ct.IP_SERVIDOR}',1)"
+                cursor.execute(sSqlErroExecucao)
                 self.pConexao.commit()
         except psycopg2.Error as e:
             self.sSqlError = str(e)
-            self.sErro = f'Ocorreu o seguinte erro na inserção do erro na tabela seg_erros_mysql: {self.sSqlError} <br> Query: {sSql}'
+            self.sErro = f'Ocorreu o seguinte erro na inserção do erro na tabela seg_erros_sql: {self.sSqlError} <br> Query: {sSqlErroExecucao}'
+
+    def recordCount(self):
+        if self.pConsulta.description is not None:
+            return self.pConsulta.rowcount()
 
     def fetchObject(self):
-        return self.pConsulta.fetchone()
+        if self.pConsulta.description is not None:
+            return self.pConsulta.fetchone()
 
     def close(self):
         self.pConexao.close()
@@ -80,7 +85,7 @@ class Conexao:
     def getErroSql(self):
         return self.sSqlError
 
-    def setConexao(self, sBanco):
+    def setConexao(self,sBanco):
         self.pConexao = Conexao(sServidor=sBanco)
 
     def getConexao(self):
@@ -100,16 +105,17 @@ class Conexao:
         sEscapedString = sEscapedString.replace("\"", "")
         return sEscapedString
 
+
     def getLastId(self):
         return self.pConsulta.lastrowid
 
-    def setQtdTabelas(self, nQtdTabelas):
+    def setQtdTabelas(self,nQtdTabelas):
         self.nQtdTabelas = nQtdTabelas
 
     def getQtdTabelas(self):
         return self.nQtdTabelas
 
-    def setQtdCampos(self, nQtdCampos):
+    def setQtdCampos(self,nQtdCampos):
         self.nQtdCampos = nQtdCampos
 
     def getQtdCampos(self):
@@ -124,17 +130,6 @@ class Conexao:
             self.setQtdTabelas(oReg['qtd'])
         return self.getQtdTabelas()
 
-    # def pegaTabelas(self, sSchema='public'):
-    #     sSql = f"SELECT * FROM information_schema.tables where table_schema = '{sSchema}'"
-    #     self.execute(sSql)
-    #     voObjeto = []
-    #     while True:
-    #         oReg = self.fetchObject()
-    #         if not oReg:
-    #             break
-    #         voObjeto.append(oReg)
-    #     return voObjeto
-    
     def pegaTabelas(self, sSchema='public'):
         sSql = f"SELECT * FROM information_schema.tables WHERE table_schema = '{sSchema}'"
         self.execute(sSql)
@@ -155,17 +150,19 @@ class Conexao:
             self.setQtdCampos(oReg['qtd'])
         return self.getQtdCampos()
 
-    def pegaCampos(self, sNomeBanco, sNomeTabela, sSchema='public'):
-        sSql = f"""
-        SELECT T.table_catalog, T.table_schema, T.table_name, C.column_name, C.data_type, CCU.constraint_name, substr(CCU.constraint_name,length(CCU.constraint_name)-3) as PRI
-        FROM information_schema.tables T
-        JOIN information_schema.columns C
-        ON C.table_catalog = T.table_catalog AND C.table_name = T.table_name AND C.table_schema = T.table_schema
-        LEFT JOIN information_schema.constraint_column_usage CCU
-        ON CCU.table_catalog = C.table_catalog AND CCU.table_name = C.table_name AND CCU.table_schema = C.table_schema AND CCU.column_name = C.column_name
-        WHERE T.table_catalog = '{sNomeBanco}' AND T.table_schema = '{sSchema}' AND T.table_name = '{sNomeTabela}'
-        ORDER BY C.ordinal_position
-        """
+    def pegaCampos(self,sNomeBanco, sNomeTabela, sSchema='public'):
+        sSql = f"""select T.TABLE_CATALOG, T.TABLE_SCHEMA, T.TABLE_NAME, C.COLUMN_NAME, C.DATA_TYPE, substring(substring(CCU.CONSTRAINT_NAME,length(ccu.constraint_name)-3,length(ccu.constraint_name)),1,2) as PRI from INFORMATION_SCHEMA.TABLES T
+                    join INFORMATION_SCHEMA.COLUMNS C
+                        on C.TABLE_CATALOG = T.TABLE_CATALOG
+                        and C.TABLE_NAME = T.TABLE_NAME
+                        and C.TABLE_SCHEMA = T.TABLE_SCHEMA
+                    left join INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE CCU
+                        on CCU.TABLE_CATALOG = C.TABLE_CATALOG
+                        and CCU.TABLE_NAME = C.TABLE_NAME
+                        and CCU.TABLE_SCHEMA = C.TABLE_SCHEMA
+                        and CCU.COLUMN_NAME = C.COLUMN_NAME
+                        and substring(CCU.CONSTRAINT_NAME,length(ccu.constraint_name)-3,length(ccu.constraint_name)) = 'pkey'
+                    where T.TABLE_CATALOG = '{sNomeBanco}' AND T.table_schema = '{sSchema}' and T.TABLE_NAME = '{sNomeTabela}' order by C.ORDINAL_POSITION"""
         self.execute(sSql)
         voObjeto = []
         while True:
@@ -174,3 +171,5 @@ class Conexao:
                 break
             voObjeto.append(oReg)
         return voObjeto
+
+

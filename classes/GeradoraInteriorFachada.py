@@ -24,7 +24,7 @@ class GeradoraInteriorFachada:
         if len(vCampos) > 0:
             vCamposReg, vValoresNaoChave, vComparacao, vAtributosChave, vCamposChave, vCamposNaoChave = [], [], [], [], [], []
             for nIndice, oCampo in enumerate(vCampos):
-                if oCampo['pri'] == "pkey":
+                if oCampo['pri'] == "pk":
                     sTeste = f"{vAtributos[nIndice]}"
                     vAtributosChave.append(sTeste)
                     vCamposChave.append(oCampo['column_name'])
